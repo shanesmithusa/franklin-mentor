@@ -7,26 +7,27 @@ from langchain.chat_models import ChatOpenAI
 from langchain.schema import Document
 import os
 
-# Load persona prompt
+# Load persona and memory files
 with open("persona_prompt.txt", "r") as f:
     persona = f.read()
 
-# Load Franklin's memory manually (no TextLoader)
 with open("memory_volume.txt", "r") as f:
     raw_text = f.read()
 
 docs = [Document(page_content=raw_text)]
 splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
 chunks = splitter.split_documents(docs)
-db = FAISS.from_documents(chunks, OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY")))
 
-# Build the Q&A chain
+# Embed and build retrieval system
+embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
+db = FAISS.from_documents(chunks, embeddings)
+
 qa_chain = RetrievalQA.from_chain_type(
     llm=ChatOpenAI(temperature=0.3, model_name="gpt-3.5-turbo"),
     retriever=db.as_retriever()
 )
 
-# Streamlit interface
+# Streamlit UI
 st.set_page_config(page_title="Ben Franklin Mentor", layout="centered")
 st.title("⚡ Ask Benjamin Franklin")
 
